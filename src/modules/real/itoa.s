@@ -22,9 +22,9 @@ itoa:
                                 ; BP+  6| buffer address
                                 ; BP+  4| value
                                 ; BP+  2| IP(address of return value)
-       push bp, sp              ; BP+  0| BP(original value)
-       mov  bp, sp
-
+                                ; BP+  0| BP(original value)
+      push bp
+      mov  bp, sp
   ;-----------------------------------------------------------
   ; save register
   ;-----------------------------------------------------------
@@ -88,7 +88,7 @@ itoa:
       mov si, dx                    ; // refer ascii table
       mov dl, byte [.ascii + si]    ; DL = ASCII[DX];
                                     ;
-      mov [dl], dl                  ; *dst = DL;
+      mov [di], dl                  ; *dst = DL;
       dec di                        ; dst--;
                                     ;
       cmp ax, 0                     ;
@@ -100,7 +100,7 @@ itoa:
   ;-----------------------------------------------------------
       cmp cx, 0                     ; if (size)
 .40Q: je .40E                       ; {
-      mov al,                       ;   AL = ' '; // filing plank by ' '
+      mov al, ' '                   ;   AL = ' '; // filing plank by ' '
       cmp [bp + 12], word 0b0100    ;   if (flags & 0x04)
 .42Q  jne .42E                      ;   {
       mov al, '0'                   ;     AL = '0'; // '0'
