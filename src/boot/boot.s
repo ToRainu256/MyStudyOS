@@ -56,6 +56,12 @@ ipl:
 
     cdecl itoa, -1,    .s1, 8, 10, 0b0001 ; "-       1"
     cdecl puts, .s1
+
+  ;--------------------------------------------------
+  ; reboot
+  ;--------------------------------------------------
+    cdecl reboot                         ; never return
+
   ;--------------------------------------------------
   ; End of process
   ;--------------------------------------------------
@@ -78,6 +84,7 @@ BOOT:                   ; infomation about boot drive
 ;**********************************************
 %include "../modules/real/puts.s"
 %include "../modules/real/itoa.s"
+%include "../modules/real/reboot.s"
   
 ;**********************************************
 ; Boot Flag(End of Head 512 bytes)
