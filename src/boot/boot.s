@@ -1,11 +1,12 @@
-    BOOT_LOAD     equ     0x7C00 ;boot program adress
-
-    ORG  BOOT_LOAD               ;load adress
 
 ;**********************************************
-; Macro
+; include 
 ;**********************************************
-%include "../include/macro.s"
+%include "../include/cdecl.s"
+%include "../include/construct.s"
+%include "../include/define.s"
+      
+ORG BOOT_LOAD           ; aply road address to asm            ;
 
 ;**********************************************
 ; Entry Point
@@ -25,7 +26,7 @@ entry:
   ;--------------------------------------------------
 
 ipl:
-    cli
+    cli                  ; deny interupt
 
     mov ax, 0x0000       ; AX = 0x0000
     mov ds, ax           ; DS = 0x0000
@@ -33,9 +34,9 @@ ipl:
     mov ss, ax           ; SS = 0x0000
     mov sp, BOOT_LOAD    ; SP = 0x7C00
 
-    sti                  ; alow 
+    sti                  ; alow interupt
 
-    mov [BOOT.DRIVE], dl ; save bootdrive
+    mov [BOOT + drive.no], dl ; save bootdrive
 
   ;--------------------------------------------------
   ; output chars
@@ -43,34 +44,20 @@ ipl:
     cdecl puts, .s0 
 
   ;--------------------------------------------------
-  ; output value
+  ; read all of sector
   ;--------------------------------------------------
-  ;  cdecl itoa, 8086, .s1, 8, 10, 0b0001  ; "     8086"
-  ;  cdecl puts, .s1 
+    
+      mov bx, BOOT_SECT -1                      ; BX = How many Boot sector left
+      mov cx, BOOT_LOAD + SECT_SIZE             ; CX = nexr boot address
 
-  ;  cdecl itoa, 8086, .s1, 8, 10, 0b0011  ; "+    8086"
-  ;  cdecl puts, .s1
+      cdecl read_chs, BOOT, bx, cx              ; AX = read_chs(BOOT, BX, CX)
 
-  ;  cdecl itoa, -8086, .s1, 8, 10, 0b0001 ; "-    8086"
-  ;  cdecl puts, .s1
-
-  ;  cdecl itoa, -1,    .s1, 8, 10, 0b0001 ; "-       1"
-  ;  cdecl puts, .s1
-
-  ;--------------------------------------------------
-  ; read next 512 byte
-  ;--------------------------------------------------
-      mov ah, 0x02                            ; AH = read op
-      mov al, 1                               ; al = number of read sector
-      mov cx, 0x0002                          ; CX = cylinder/sector
-      mov dh, 0x00                            ; DH = head position
-      mov dl, [BOOT.DRIVE]                    ; DL = drive numver
-      mov bx, 0x7C00 + 512                    ; BX = offset
-      int 0x13                                ; if (CF = BIOS(0x13, 0x02))
-.10Q: jnc .10E                                ; {
-.10T: cdecl puts, .e0                         ;   puts(.e0);
-      call reboot                             ;   reboot();
-.10E:                                         ; }
+       cmp ax, bx                                ; if(AX != How many Boot sector left)
+.10Q:  jz .10E                                   ; {
+.10T:  cdecl puts, .e0                            ;   puts(.e0);
+       call reboot                               ;   reboot();
+.10E:                                            ; }
+  
 
   ;--------------------------------------------------
   ; boot processing goes NEXT STAGE!!!!
@@ -88,10 +75,18 @@ ipl:
   ;--------------------------------------------------
 .s0 db "Booting...", 0x0A, 0x0D, 0 
 .e0 db "Error:sector read", 0
+;**************************************************
+; infomation about boot drive
+;**************************************************
 
 ALIGN 2, db 0
-BOOT:                   ; infomation about boot drive
-.DRIVE: dw 0            ; number of drive
+BOOT:                   ; 
+    istruc drive
+        at drive.no,    dw 0 ; drive number
+        at drive.cyln,  dw 0 ; C: cylinder
+        at drive.head,  dw 0 ; H: head
+        at drive.sect,  dw 2 ; S: Sector
+    iend
 
 
 ;**********************************************
@@ -100,6 +95,7 @@ BOOT:                   ; infomation about boot drive
 %include "../modules/real/puts.s"
 %include "../modules/real/itoa.s"
 %include "../modules/real/reboot.s"
+%include "../modules/real/read_chs.s"
   
 ;**********************************************
 ; Boot Flag(End of Head 512 bytes)
@@ -131,4 +127,4 @@ stage_2:
 ;**********************************************
 ; Padding
 ;**********************************************
-    times (1024 * 8) - ($ - $$) db 0 ;8Kbyte
+    times BOOT_SIZE - ($ - $$) db 0   
